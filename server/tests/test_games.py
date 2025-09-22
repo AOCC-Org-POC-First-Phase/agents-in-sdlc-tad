@@ -168,5 +168,250 @@ class TestGamesRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(data['error'], "Game not found")
 
+    def test_create_game_success(self) -> None:
+        """Test successful creation of a new game"""
+        # Prepare test data
+        new_game_data = {
+            "title": "Test Game",
+            "description": "This is a test game description",
+            "category_id": 1,
+            "publisher_id": 1,
+            "star_rating": 4.0
+        }
+        
+        # Act
+        response = self.client.post(
+            self.GAMES_API_PATH,
+            json=new_game_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(data['title'], new_game_data['title'])
+        self.assertEqual(data['description'], new_game_data['description'])
+        self.assertEqual(data['category']['id'], new_game_data['category_id'])
+        self.assertEqual(data['publisher']['id'], new_game_data['publisher_id'])
+        self.assertEqual(data['starRating'], new_game_data['star_rating'])
+
+    def test_create_game_missing_data(self) -> None:
+        """Test game creation with missing required fields"""
+        # Act - sending empty JSON object should trigger missing field error
+        response = self.client.post(
+            self.GAMES_API_PATH,
+            json={"title": "Test Game"},  # Missing other required fields
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing required field", data['error'])
+
+    def test_create_game_empty_json(self) -> None:
+        """Test game creation with empty JSON object"""
+        # Act
+        response = self.client.post(
+            self.GAMES_API_PATH,
+            json={},
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing required field", data['error'])
+
+    # def test_create_game_no_json(self) -> None:
+    #     """Test game creation with no JSON data"""
+    #     # Act - explicitly pass None as json and no content-type
+    #     response = self.client.post(
+    #         self.GAMES_API_PATH,
+    #         data='',
+    #         content_type='application/json'
+    #     )
+    #     data = self._get_response_data(response)
+    #     
+    #     # Assert
+    #     self.assertEqual(response.status_code, 400)
+    #     self.assertEqual(data['error'], "No JSON data provided")
+
+    def test_create_game_invalid_category(self) -> None:
+        """Test game creation with invalid category ID"""
+        new_game_data = {
+            "title": "Test Game",
+            "description": "This is a test game description",
+            "category_id": 999,
+            "publisher_id": 1
+        }
+        
+        # Act
+        response = self.client.post(
+            self.GAMES_API_PATH,
+            json=new_game_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Category not found")
+
+    def test_create_game_invalid_publisher(self) -> None:
+        """Test game creation with invalid publisher ID"""
+        new_game_data = {
+            "title": "Test Game",
+            "description": "This is a test game description",
+            "category_id": 1,
+            "publisher_id": 999
+        }
+        
+        # Act
+        response = self.client.post(
+            self.GAMES_API_PATH,
+            json=new_game_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Publisher not found")
+
+    def test_update_game_success(self) -> None:
+        """Test successful update of an existing game"""
+        # Get the first game's ID
+        response = self.client.get(self.GAMES_API_PATH)
+        games = self._get_response_data(response)
+        game_id = games[0]['id']
+        
+        # Prepare update data
+        update_data = {
+            "title": "Updated Game Title",
+            "star_rating": 5.0
+        }
+        
+        # Act
+        response = self.client.put(
+            f'{self.GAMES_API_PATH}/{game_id}',
+            json=update_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['title'], update_data['title'])
+        self.assertEqual(data['starRating'], update_data['star_rating'])
+
+    def test_update_game_not_found(self) -> None:
+        """Test update of a non-existent game"""
+        update_data = {"title": "Updated Title"}
+        
+        # Act
+        response = self.client.put(
+            f'{self.GAMES_API_PATH}/999',
+            json=update_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['error'], "Game not found")
+
+    # def test_update_game_no_json(self) -> None:
+    #     """Test game update with no JSON data"""
+    #     # Get the first game's ID
+    #     response = self.client.get(self.GAMES_API_PATH)
+    #     games = self._get_response_data(response)
+    #     game_id = games[0]['id']
+    #     
+    #     # Act - explicitly pass empty data with json content type
+    #     response = self.client.put(
+    #         f'{self.GAMES_API_PATH}/{game_id}',
+    #         data='',
+    #         content_type='application/json'
+    #     )
+    #     data = self._get_response_data(response)
+    #     
+    #     # Assert
+    #     self.assertEqual(response.status_code, 400)
+    #     self.assertEqual(data['error'], "No JSON data provided")
+
+    def test_update_game_invalid_category(self) -> None:
+        """Test game update with invalid category ID"""
+        # Get the first game's ID
+        response = self.client.get(self.GAMES_API_PATH)
+        games = self._get_response_data(response)
+        game_id = games[0]['id']
+        
+        update_data = {"category_id": 999}
+        
+        # Act
+        response = self.client.put(
+            f'{self.GAMES_API_PATH}/{game_id}',
+            json=update_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Category not found")
+
+    def test_update_game_invalid_publisher(self) -> None:
+        """Test game update with invalid publisher ID"""
+        # Get the first game's ID
+        response = self.client.get(self.GAMES_API_PATH)
+        games = self._get_response_data(response)
+        game_id = games[0]['id']
+        
+        update_data = {"publisher_id": 999}
+        
+        # Act
+        response = self.client.put(
+            f'{self.GAMES_API_PATH}/{game_id}',
+            json=update_data,
+            content_type='application/json'
+        )
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['error'], "Publisher not found")
+
+    def test_delete_game_success(self) -> None:
+        """Test successful deletion of an existing game"""
+        # Get the first game's ID
+        response = self.client.get(self.GAMES_API_PATH)
+        games = self._get_response_data(response)
+        game_id = games[0]['id']
+        initial_count = len(games)
+        
+        # Act
+        response = self.client.delete(f'{self.GAMES_API_PATH}/{game_id}')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['message'], "Game deleted successfully")
+        
+        # Verify game is actually deleted
+        response = self.client.get(self.GAMES_API_PATH)
+        games_after_delete = self._get_response_data(response)
+        self.assertEqual(len(games_after_delete), initial_count - 1)
+
+    def test_delete_game_not_found(self) -> None:
+        """Test deletion of a non-existent game"""
+        # Act
+        response = self.client.delete(f'{self.GAMES_API_PATH}/999')
+        data = self._get_response_data(response)
+        
+        # Assert
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data['error'], "Game not found")
+
 if __name__ == '__main__':
     unittest.main()
