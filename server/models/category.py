@@ -14,16 +14,48 @@ class Category(BaseModel):
     
     @validates('name')
     def validate_name(self, key, name):
+        """
+        Validate the category name to ensure it meets minimum length requirements.
+        
+        Args:
+            key: The field name being validated
+            name: The category name to validate
+            
+        Returns:
+            str: The validated category name
+        """
         return self.validate_string_length('Category name', name, min_length=2)
         
     @validates('description')
     def validate_description(self, key, description):
+        """
+        Validate the category description to ensure it meets minimum length requirements.
+        
+        Args:
+            key: The field name being validated
+            description: The description value to validate
+            
+        Returns:
+            str: The validated description
+        """
         return self.validate_string_length('Description', description, min_length=10, allow_none=True)
     
     def __repr__(self):
+        """
+        Return a string representation of the Category object.
+        
+        Returns:
+            str: String representation showing category name
+        """
         return f'<Category {self.name}>'
         
     def to_dict(self):
+        """
+        Convert the Category object to a dictionary for JSON serialization.
+        
+        Returns:
+            dict: Dictionary containing category data including game count
+        """
         return {
             'id': self.id,
             'name': self.name,
